@@ -1,0 +1,15 @@
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\bin\Debug\net10.0\Inventory.exe
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\bin\Debug\net10.0\Inventory.deps.json
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\bin\Debug\net10.0\Inventory.runtimeconfig.json
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\bin\Debug\net10.0\Inventory.dll
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\bin\Debug\net10.0\Inventory.pdb
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.GeneratedMSBuildEditorConfig.editorconfig
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.AssemblyInfoInputs.cache
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.AssemblyInfo.cs
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.csproj.CoreCompileInputs.cache
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.sourcelink.json
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.dll
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\refint\Inventory.dll
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.pdb
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\Inventory.genruntimeconfig.cache
+D:\RiderProjects\VictorArce\Week1\Inventory\Inventory\obj\Debug\net10.0\ref\Inventory.dll
