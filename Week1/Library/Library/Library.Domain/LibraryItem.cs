@@ -2,7 +2,7 @@ namespace Library.Library.Domain;
 
 //Abstarct class that cannot be instantiated
 //Still need a constructor for child classes but it cannot be called here
-public abstract class LibrayItem
+public abstract class LibraryItem
 {
     public string? Title { get; private set; }
     public string? Author { get; private set; }
@@ -10,7 +10,7 @@ public abstract class LibrayItem
     public int Id {get;} //No setter so it cannot be modified
 
     //Protected because its going to be inherted by other classes
-    protected LibrayItem(string title, string author)
+    protected LibraryItem(string title, string author)
     {
         Id = _nextId++;
         Title = title;

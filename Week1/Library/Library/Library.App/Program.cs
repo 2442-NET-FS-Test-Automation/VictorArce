@@ -1,5 +1,9 @@
-using System.Data.Common;
+using Library.Design_Pattern_Examples;
+using Library.Exceptions;
 using Library.Library.Domain;
+using Library.Repo;
+using Serilog;
+using Serilog.Configuration;
 
 namespace Library.Library.App;
 
@@ -7,9 +11,21 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        //Serilog need to be configured before any other things starts
+        //Serillog works via a singleton object. its shared globally trought the program
+        Log.Logger = 
+            new LoggerConfiguration()
+                .MinimumLevel
+                .Information() // Verbose > Debug > Info > Warnings > Error > Fatal
+                .WriteTo.Console() //Sing : where  do my logs go? console, text file, database, etc
+                .CreateLogger(); //Create logger using the previous configurtion
         DataTypesAndOperators();
         ClassesExample();
         OopDemo();
+        //CollectionsDemo();
+
+        ExceptionsDemo();
+        Log.CloseAndFlush();
     }
     
     private static void DataTypesAndOperators()
@@ -116,7 +132,7 @@ public class Program
     {
         Console.WriteLine("==Oop Demo==");
         //Levegging polymorphism - Books, Reference, Magazine all are LibraryItems
-        LibrayItem[] catalog =
+        LibraryItem[] catalog =
         {
             new Book("Dune", "Frank Herbert", 5),
             new Book("LOTR", "J.R.R. Tolkien", 3),
@@ -124,12 +140,12 @@ public class Program
             new Magazine("Sports Ilustrated", "Francisco", 5, "Conde Naste")
         };
 
-        foreach (LibrayItem catalogItem in catalog)
+        foreach (LibraryItem catalogItem in catalog)
         {
             Console.WriteLine(catalogItem.Describe());
         }
 
-        foreach (LibrayItem catalogItem in catalog)
+        foreach (LibraryItem catalogItem in catalog)
         {
             if (catalogItem is ILendable lendable)
             {
@@ -145,10 +161,121 @@ public class Program
         
         //Override vs new - behavior
         Magazine wired = new Magazine("Wired", "Luis", 3, "Conde Naste");
-        LibrayItem basemag = wired;
+        LibraryItem basemag = wired;
         Console.WriteLine("=====Override vs new on the same onject, diferent type=====");
         Console.WriteLine($"Magazine reference -> {wired.ShelfLabel()}");
         Console.WriteLine($"LibrearyItem reference -> {basemag.ShelfLabel()}");
+    }
+
+    private static void CollectionsDemo()
+    {
+        Console.WriteLine("==== Collections Demo ====");
+        //Creating a catalog object
+        //Because this is backed by a list,it grows and shrinks automatically
+        Catalog catalog = new Catalog();
+        
+        Book dune = new Book("Dune", "Frank Herbert", 5);
+
+        catalog._items.Add(dune);
+        
+        catalog._items.Add(new ReferenceBook("C# language standards", "Microsoft", "Technology"));
+        
+        catalog._items.Add(new Magazine("Nat Geo", "Charlie", 5,  "Conde Naste"));
+        
+        Console.WriteLine($"Catalog holds {catalog._items.Count} items");
+        Console.WriteLine($"the first one is {catalog._items[0].Title}");
+        
+        //Enum+Struct use
+        ItemKind kind = ItemKind.Magazine; //Example of selecting an enum value
+        ShelfLocation place = new ShelfLocation(3,12); //Struct 
+        Console.WriteLine($"{kind} sits at {place}");
+
+        Book duneCopy = dune;
+        //Modifiyng the left one also modifies the right one
+        //because they are basically pointers
+
+        ShelfLocation place2 = place;
+        //Modifiyng the left one DONT modify the right one because
+        //it copied the values
+
+        Shelf<LibraryItem> shelf = new Shelf<LibraryItem>(2);
+        Shelf<int> intShelf = new Shelf<int>(100);
+
+        shelf.TryAdd(catalog._items[0]);
+        shelf.TryAdd(catalog._items[1]);
+        
+        //Console.WriteLine($"trying to add a third thing in the catalog: {shelf.TryAdd(catalog._items[2])}");
+
+    }
+
+    public static void ExceptionsDemo()
+    {
+        Console.WriteLine("==== Exceptions Demo ====");
+        
+        ILibraryRepository repo = new InMemoryLibraryRepository();
+        
+        IUnitOfWork libraryWork =  new UnitOfWork(repo);
+        
+        //Creating a book but using factoory method
+        LibraryItem dune = LibraryItemFactory.create(ItemKind.Book, "Dune", "Frank Herber", copies:2);
+        repo.Add(dune);
+        
+        //Magazines needs extra fields but we added default data so we wont be adding it 
+        repo.Add(LibraryItemFactory.create(ItemKind.Magazine, "Wired", "Axel", copies:2));
+        
+        //Pretending to adding channges to database
+        libraryWork.Stage("Added 2 items");
+        libraryWork.commit();
+        
+        //We went trought trouble of creating custom exceptions so
+        //well try to put it in work wapping some code in a try-catch
+
+        
+        //This block will try to catch every kind of exceptions from the most especific to the most generic
+        try
+        {
+            LibraryItem missing = repo.Get(99);
+            Console.WriteLine(missing.Describe());
+        }
+        catch (ItemNotFoundExceptions ex)
+        {
+            Log.Error("Lookup failed for id {id}: {Message}", ex.Id, ex.Message);
+            Console.WriteLine(ex);
+            throw;
+        }
+        catch (LibraryException ex)
+        {
+            Log.Error("Library error: {Message}", ex.Message);
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Library error: {Message}", ex.Message);
+        }
+        finally //This will run code wether the code throw an exceptions or not
+                //even if theres a return statement in any catch
+        {
+            Console.WriteLine("Hit out finally block - lookup attempt done");
+        }
+
+        Book noCopies = new Book("Count of Montecristo", "Alejandro Dumas", 0);
+
+        try
+        {
+            Borrow(noCopies);
+        }
+        catch (ItemNotAvailableException ex)
+        {
+            Log.Warning("Borrow refused; {Message}", ex.Message);
+            throw;
+        }
+    }
+
+    public static void Borrow(Book book)
+    {
+        if (!book.CheckOut())
+        {
+            throw new ItemNotAvailableException(book.Title);
+        }
     }
     
     private static decimal CalculateFee(int d) => d * 2;

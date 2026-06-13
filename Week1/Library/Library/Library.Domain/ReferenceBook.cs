@@ -1,6 +1,6 @@
 namespace Library.Library.Domain;
 
-public class  ReferenceBook : LibrayItem
+public class  ReferenceBook : LibraryItem
 {
     public string Section{ get;}
 

@@ -1,6 +1,6 @@
 namespace Library.Library.Domain;
 
-public class Magazine : LibrayItem, ILendable
+public class Magazine : LibraryItem, ILendable
 {
     public int CirculationsCopies { get; private set; }
     public string Publisher {  get; private set; }
