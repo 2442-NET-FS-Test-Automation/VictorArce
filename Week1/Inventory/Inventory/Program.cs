@@ -4,7 +4,7 @@ using Inventory.Classes;
 
 public class Program
 {
-    static void Main(string[] args)
+    static void Main()
     {
         IActions actions = new Actions();
         Product product = new Product(
@@ -17,6 +17,8 @@ public class Program
         bool exit = false;
         do
         {
+            int id = 0;
+            int quantity = 0;
             int opc = 0;
             Console.WriteLine("What do you want to do?");
             Console.WriteLine("1 - Add a product");
@@ -31,21 +33,31 @@ public class Program
                     Console.WriteLine("Still not implemented because I'm lazy");
                     break;
                 case 2:
-                    int id = int.Parse(Console.ReadLine());
-                    int quantity = int.Parse(Console.ReadLine());
+                    Console.WriteLine("\n");
+                    Console.WriteLine("Enter Id of the product");
+                    id = int.Parse(Console.ReadLine());
+                    Console.WriteLine("Enter quantity to restock");
+                    quantity = int.Parse(Console.ReadLine());
+                    Console.WriteLine("\n");
                     actions.RestockProduct(id, quantity);
                     break;
                 case 3:
-                    actions.SellProduct(1, 1);
+                    Console.WriteLine("\n");
+                    Console.WriteLine("Enter Id of the product");
+                    id = int.Parse(Console.ReadLine());
+                    Console.WriteLine("Enter quantity to sell");
+                    quantity = int.Parse(Console.ReadLine());
+                    actions.SellProduct(id, quantity);
                     break;
                 case 4:
-                    Console.WriteLine("Products:\n");
+                    Console.WriteLine("Products:");
                     actions.ListProducts();
                     break;
                 case 5:
                     exit = true;
                     break;
             }
+            Console.WriteLine("Press any key to continue...");
             Console.ReadKey();
             Console.Clear();
         }while(exit == false);

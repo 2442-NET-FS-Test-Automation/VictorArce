@@ -19,6 +19,7 @@ public class Product : StockItems
                $"Type of product: {Type} \n" +
                $"Name of product: {Name} \n" +
                $"Brand: {Brand} \n" +
-               $"Price: ${Price} \n";
+               $"Price: ${Price} \n" +
+               $"Price: ${Quantity} \n";
     }
 }
