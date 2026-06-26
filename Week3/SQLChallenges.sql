@@ -23,38 +23,67 @@ ORDER BY - sort the data
 
 -- BASIC CHALLENGES
 -- List all customers (full name, customer id, and country) who are not in the USA
-
+select *
+from dbo.Customer
+where Customer.Country != 'USA';
 -- List all customers from Brazil
-
+select *
+from dbo.Customer
+where Country  = 'Brazil';
 
 -- List all sales agents
+Select *
+from Employee
+where Employee.Title
+like 'Sales%'
 
 -- SELECT * FROM employee WHERE title LIKE '%Agent%;
 
-
 -- Retrieve a list of all countries in billing addresses on invoices
+select BillingCountry, count(*) as Countries
+from Invoice
+group by BillingCountry
+having count (*) > 1
+order by Countries desc;
 
-
--- Retrieve how many invoices there were in 2009, and what was the sales total for that year?
-
+-- Retrieve how many invoices there were in 2021, and what was the sales total for that year?
+select count(*) as Invoices2021, sum(Total) as TotalSale2021
+from dbo.Invoice
+where InvoiceDate like '%2021%';
 -- (challenge: find the invoice count sales total for every year using one query)
 
 
 -- how many line items were there for invoice #37
-
+select count (*) as Items
+from Invoice
+where CustomerId = '37';
 
 -- how many invoices per country? BillingCountry  # of invoices 
+select BillingCountry as Countries, count(*) as Invoices
+from Invoice
+group by BillingCountry
+order by Invoices desc;
 
 -- Retrieve the total sales per country, ordered by the highest total sales first.
+select BillingCountry as Countries, SUM(Total) as TotalSale
+from Invoice
+group by BillingCountry
+order by TotalSale desc;
 
 -- JOINS CHALLENGES
 -- Every Album by Artist
-
+select Title, dbo.Artist.Name
+from Album
+join Artist on Album.ArtistId = Artist.ArtistId
+order by dbo.Artist.Name;
 
 -- (inner keyword is optional for inner join)
 
 -- All songs of the rock genre
-
+select dbo.Track.Name
+from Track
+join Genre on Track.GenreId = Genre.GenreId
+where Genre.Name = 'Rock'
 
 -- Show all invoices of customers from brazil (mailing address not billing)
 
@@ -62,17 +91,29 @@ ORDER BY - sort the data
 -- Show all invoices together with the name of the sales agent for each one
 
 
--- Which sales agent made the most sales in 2009?
-
+-- Which sales agent made the most sales in 2021?
+select top 1 dbo.Employee.FirstName, sum(dbo.Invoice.Total)
+from Employee
+join Customer on Employee.EmployeeId = Customer.SupportRepId
+join dbo.Invoice on Customer.CustomerId = dbo.Invoice.CustomerId
+group by Employee.FirstName;
 
 -- How many customers are assigned to each sales agent?
+select dbo.Employee.FirstName, count(dbo.Customer.SupportRepId)
+from Employee
+join Customer on Employee.EmployeeId = Customer.SupportRepId
+group by Employee.FirstName;
 
-
--- Which track was purchased the most in 2010?
-
+-- Which track was purchased the most in 2022?
+--select top 1 dbo.Track.Name, sum(dbo.InvoiceLine.Quantity)
+--from Track
+--where dbo.Invoice.InvoiceDate = '2022%'
+--join Track on TrackId =
+--join dbo.Invoice on Customer.CustomerId = dbo.Invoice.CustomerId
+--group by dbo.Track.TrackId;
 
 -- Show the top three best selling artists.
-
+select top 3 dbo.Artist.Name, sum()
 
 -- Which customers have the same initials as at least one other customer?
 
