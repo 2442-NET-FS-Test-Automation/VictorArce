@@ -6,6 +6,8 @@ public class Program
 {
     static void Main()
     {
+        int[] array = { 1, 2, 3, 4, 5 };
+        int size = array.Length;
         IActions actions = new Actions();
         Product product = new Product(
             10,

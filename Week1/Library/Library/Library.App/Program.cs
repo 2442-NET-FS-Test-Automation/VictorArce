@@ -19,12 +19,6 @@ public class Program
                 .Information() // Verbose > Debug > Info > Warnings > Error > Fatal
                 .WriteTo.Console() //Sing : where  do my logs go? console, text file, database, etc
                 .CreateLogger(); //Create logger using the previous configurtion
-        DataTypesAndOperators();
-        ClassesExample();
-        OopDemo();
-        //CollectionsDemo();
-
-        ExceptionsDemo();
         Log.CloseAndFlush();
     }
     
@@ -276,6 +270,35 @@ public class Program
         {
             throw new ItemNotAvailableException(book.Title);
         }
+    }
+
+    public static async Task AsyncHttptDemo()
+    {
+        //We wrote our client object
+        OpenLibraryClient client = new OpenLibraryClient();
+        
+        string[] isbns = { "9780132350884", "9780201633610" };
+        
+        Task<LibraryItem?>[] fetchedBooks = new Task<LibraryItem?>[isbns.Length];
+        
+        //Next we loop trought the array and call FetchByIsbnAync for each one
+        for (int i = 0; i < fetchedBooks.Length; i++)
+        {
+            fetchedBooks[i] = client.FetchByIsbnAync(isbns[i]);
+        }
+
+        LibraryItem?[] foundBooks = await Task.WhenAll(fetchedBooks);
+
+        LibraryItem? firstBookFound = foundBooks.Length > 0 ? foundBooks[0] : null;
+        
+        Console.WriteLine($"Fetched: {firstBookFound?.Describe()}");
+        /*
+        foreach (string isbn in isbns)
+        {
+            LibraryItem book = await client.FetchByIsbnAync(isbn);
+            Console.WriteLine(book.Describe());
+        }
+        */
     }
     
     private static decimal CalculateFee(int d) => d * 2;
