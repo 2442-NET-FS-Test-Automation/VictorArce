@@ -1,0 +1,6 @@
+﻿
+Para crear una migracion y realizar cambios a la base de datos
+dotnet ef migrations add DataSeeded3 --project Week3Project.Data --startup-project Week3Project.Api  
+
+Para Actualizar la base de datos, esto aplica los cambios realizados en la migracion
+dotnet ef database update --project Week3Project.Data --startup-project Week3Project.Api
