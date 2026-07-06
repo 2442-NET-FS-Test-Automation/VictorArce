@@ -13,6 +13,7 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<StoreDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+//Swagger initialize
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 

@@ -1,6 +1,6 @@
 <Solution>
   <Folder Name="/Week3Project.Data/">
-    <Project Path="Week3Project.Data/Week3project.Data.csproj" />
+    <Project Path="Week3Project.Data/Week3Project.Data.csproj" />
   </Folder>
   <Project Path="Week3Project.Api/Week3Project.Api.csproj" />
 </Solution>

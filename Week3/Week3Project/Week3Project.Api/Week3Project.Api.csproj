@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
 
   <ItemGroup>
-    <ProjectReference Include="..\Week3Project.Data\Week3project.Data.csproj" />
+    <ProjectReference Include="..\Week3Project.Data\Week3Project.Data.csproj" />
   </ItemGroup>
 
   <ItemGroup>

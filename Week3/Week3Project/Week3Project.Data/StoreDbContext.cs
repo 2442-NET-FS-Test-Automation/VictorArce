@@ -88,7 +88,7 @@ public class StoreDbContext : DbContext
         //Our SKU goes this way
         //YGO = The TCG we are working on
         //GAOV = Card Set
-        //EN000 = Card Number in that set (SP1 is for sneak peek, EN is for regular booster)
+        //EN000 =language and Card Number in that set (SP1 is for sneak peek, three numbers is for regular booster)
         //UR = Card Rarity (UR = Ultra Rare, SP = Super Rare)
         
         
