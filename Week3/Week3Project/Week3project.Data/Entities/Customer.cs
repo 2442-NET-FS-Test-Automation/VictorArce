@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
-namespace Week3Project.Data;
+
+namespace Week3Project.Data.Entities;
 
 public class Customer
 {
@@ -14,5 +15,5 @@ public class Customer
     public string Email { get; set; } = string.Empty;
 
     // Navigation property
-    public ICollection<PurchaseOrder> Orders { get; set; } = new List<PurchaseOrder>();
+    public List<PurchaseOrder> Orders { get; set; } = new List<PurchaseOrder>();
 }

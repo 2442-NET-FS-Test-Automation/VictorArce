@@ -1,3 +1,6 @@
 <Solution>
-  <Project Path="Week3Project/Week3Project.csproj" />
+  <Folder Name="/Week3Project.Data/">
+    <Project Path="Week3Project.Data/Week3project.Data.csproj" />
+  </Folder>
+  <Project Path="Week3Project.Api/Week3Project.Api.csproj" />
 </Solution>

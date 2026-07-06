@@ -1,4 +1,4 @@
-﻿namespace Week3Project.Data;
+﻿namespace Week3Project.Data.Entities;
 
 public class CardInventory
 {
@@ -6,7 +6,7 @@ public class CardInventory
     
     public int CardId { get; set; }
     public Card Card { get; set; } = null!;
-    
+     
     public int QuantityOnHand { get; set; }
     
     // Concurrency Token managed automatically by SQL Server
