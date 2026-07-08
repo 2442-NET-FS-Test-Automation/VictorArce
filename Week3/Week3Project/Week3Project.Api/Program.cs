@@ -2,15 +2,19 @@ using Microsoft.EntityFrameworkCore;
 using Week3Project.Data;
 using Serilog;
 
+
 var builder = WebApplication.CreateBuilder(args);
 
 //String for connection to the server, IT SHOUlD BE ON A .env FILE AND NOT HERE!
-//It's already moved to appsetings.json but, I'll leave the note here
+//It's already moved to appsetings.json, but I'll leave the note here
 //var for the DB connection
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
 //Connection to SQL server
 //Add the DB context
-builder.Services.AddDbContext<StoreDbContext>(options =>
+//builder.Services.AddDbContext<StoreDbContext>(options =>
+//    options.UseSqlServer(connectionString));
+
+builder.Services.AddDbContextFactory<StoreDbContext>(options => 
     options.UseSqlServer(connectionString));
 
 //Serilog initialization
@@ -19,7 +23,6 @@ Log.Logger = new LoggerConfiguration()
     .WriteTo.File("logs/fulfillment-log-.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
-//Swagger initialize
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -30,7 +33,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.MapGet("/", () => "Hello World!"); 
+app.MapGet("/", () => "\n\n\"From the moment I understood the weakness of my flesh, it disgusted me. I craved the strength and certainty of steel. I aspired to the purity of the blessed machine. Your kind cling to your flesh as if it will not decay and fail you. One day the crude biomass you call a temple will wither and you will beg my kind to save you. But I am already saved. For the Machine is Immortal\"\n");
 
 //CRUD stuff
 //List all cards in the DB
@@ -66,7 +69,7 @@ app.MapGet("/Cards/withStock", async (StoreDbContext db) =>
         .ToListAsync();
 });
 
-app.MapGet("/Cards/withoutStock", async (StoreDbContext db) =>
+app.MapGet("/Cards/whitoutStock", async (StoreDbContext db) =>
 {
     return await db.Cards
         .Select(c => new
