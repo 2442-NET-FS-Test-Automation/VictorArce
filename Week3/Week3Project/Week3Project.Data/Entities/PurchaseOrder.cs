@@ -21,6 +21,6 @@ public class PurchaseOrder
 
     // Even with the single-line simplification, keeping an Order -> OrderLine breakdown
     // protects the 3NF schema design for future expansions.
-    public List<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
-    public List<FulFillmentLog> FulfillmentLogs { get; set; } = new List<FulFillmentLog>();
+    public ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
+    public ICollection<FulFillmentLog> FulfillmentLogs { get; set; } = new List<FulFillmentLog>();
 }

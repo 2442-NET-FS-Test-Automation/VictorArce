@@ -92,7 +92,7 @@ public class StoreDbContext : DbContext
         //UR = Card Rarity (UR = Ultra Rare, SP = Super Rare)
         
         
-        //Some inventory, remember to set the CardId to the Id of the Card
+        //Some inventory, remember to set the CardId to the Id of the Card it represents
         modelBuilder.Entity<CardInventory>().HasData(
             new CardInventory {Id = 1, CardId = 1, QuantityOnHand = 20},
             new CardInventory {Id = 2, CardId = 2, QuantityOnHand = 0},
@@ -100,6 +100,7 @@ public class StoreDbContext : DbContext
             new CardInventory {Id = 4, CardId = 4, QuantityOnHand = 8});
 
         //Some customers
+        //Razen is a card but who cares?
         modelBuilder.Entity<Customer>().HasData(
             new Customer{Id = 1, Name = "Genaro", Email = "genSal@tmp.com"},
             new Customer{Id = 2, Name = "Brandon", Email = "bran@tmp.com"},

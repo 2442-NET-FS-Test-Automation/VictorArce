@@ -1,6 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Week3Project.Data;
-
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +13,12 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContext<StoreDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+//Serilog initialization
+Log.Logger = new LoggerConfiguration()
+    .WriteTo.Console()
+    .WriteTo.File("logs/fulfillment-log-.log", rollingInterval: RollingInterval.Day)
+    .CreateLogger();
+
 //Swagger initialize
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -24,7 +30,7 @@ var app = builder.Build();
 app.UseSwagger();
 app.UseSwaggerUI();
 
-app.MapGet("/", () => "Hello World!");
+app.MapGet("/", () => "Hello World!"); 
 
 //CRUD stuff
 //List all cards in the DB
@@ -60,7 +66,7 @@ app.MapGet("/Cards/withStock", async (StoreDbContext db) =>
         .ToListAsync();
 });
 
-app.MapGet("/Cards/whitoutStock", async (StoreDbContext db) =>
+app.MapGet("/Cards/withoutStock", async (StoreDbContext db) =>
 {
     return await db.Cards
         .Select(c => new
