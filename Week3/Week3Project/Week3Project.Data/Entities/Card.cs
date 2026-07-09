@@ -8,11 +8,11 @@ public class Card
     
     [Required]
     [StringLength(20)]
-    public string Sku { get; set; } = string.Empty; // e.g., MTG-MH3-011-F
+    public string Sku { get; set; } = string.Empty;
     
     [Required]
     [StringLength(100)]
-    public string Name { get; set; } = string.Empty; // e.g., Ragavan, Nimble Pilferer
+    public string Name { get; set; } = string.Empty;
     
     public decimal Price { get; set; }
 
