@@ -9,12 +9,10 @@ public class FulFillmentLog
     
     public int PurchaseOrderId { get; set; }
     
-    [Required]
     [StringLength(50)]
     public string Type { get; set; } = default!; // e.g., "Success", "ConflictRetry", "Backorder"
     
     //This is that field where it says what happened to the order
-    [Required]
     [StringLength(500)]
     public string Message { get; set; } = default!;
     

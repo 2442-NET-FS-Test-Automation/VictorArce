@@ -2,6 +2,6 @@
 
 public enum OrderPriority
 {
-    Normal = 0,
-    Expedited = 1
+    Speed = 0,
+    SpeedPlus = 1
 }

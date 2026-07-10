@@ -16,7 +16,7 @@ public class BurstPlanner : IBurstPlanner
         PriorityQueue<int, int> pq = new PriorityQueue<int, int>();
 
         foreach (PurchaseOrder o in orders)
-            pq.Enqueue(o.Id, o.Priority == OrderPriority.Expedited ? 0 : 1);
+            pq.Enqueue(o.Id, o.Priority == OrderPriority.SpeedPlus ? 0 : 1);
             
         var orderedByPriority = new List<int>();
         while (pq.TryDequeue(out int id, out _))

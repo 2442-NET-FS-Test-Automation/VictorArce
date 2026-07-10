@@ -9,10 +9,5 @@ public interface ISeeder
 
     void Restock();
 
-    void Clear();
-
     void StockToTarget(int i);
-    
-
-
 }

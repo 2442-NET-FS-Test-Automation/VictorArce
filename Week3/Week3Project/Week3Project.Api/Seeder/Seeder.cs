@@ -1,9 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Week3Project.Data.Entities;
+﻿using Week3Project.Data.Entities;
 using Week3Project.Data;
 using Microsoft.EntityFrameworkCore;
+using Serilog;
 using Week3Project.Data.Enum;
 
 namespace Week3Project.Api.Seeder;
@@ -45,7 +43,7 @@ public class Seeder : ISeeder
             {
                 // Unique: (1, 4) generates 1, 2 and 3, important because we seeded 3 customers
                 CustomerId = Random.Shared.Next(1, 4), 
-                Priority = priority ? OrderPriority.Expedited : OrderPriority.Normal,
+                Priority = priority ? OrderPriority.SpeedPlus : OrderPriority.Speed,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
             
@@ -80,15 +78,13 @@ public class Seeder : ISeeder
     public void Restock()
     {
         using var db = _dbContextFactory.CreateDbContext();
-        db.Cards.ToList().ForEach(c => c.Inventory.QuantityOnHand = 10);
+        db.Cards.ToList().ForEach(c =>
+        {
+            if (c.Inventory != null) c.Inventory.QuantityOnHand = 10;
+        });
     }
     
-    //Easy as it reads, set all the stock to 0
-    public void Clear()
-    {
-        using var db = _dbContextFactory.CreateDbContext();
-        db.Cards.ToList().ForEach(c => c.Inventory.QuantityOnHand = 0);
-    }
+    
 
     //Set stock to desired 
     public void StockToTarget(int i)
@@ -96,4 +92,5 @@ public class Seeder : ISeeder
         using var db = _dbContextFactory.CreateDbContext();
         db.Cards.ToList().ForEach(c => c.Inventory.QuantityOnHand = i);
     }
+    
 }
