@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations.Schema;
+﻿using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using Week3Project.Data.Enum;
 
 namespace Week3Project.Data.Entities;
@@ -10,7 +12,6 @@ public class PurchaseOrder
     //Foreign key from our Customer table
     public int CustomerId { get; set; }
     
-    [ForeignKey(nameof(CustomerId))]
     public Customer Customer { get; set; } = default!;
 
     public OrderPriority Priority { get; set; }
@@ -22,5 +23,4 @@ public class PurchaseOrder
     // Even with the single-line simplification, keeping an Order -> OrderLine breakdown
     // protects the 3NF schema design for future expansions.
     public ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
-    public ICollection<FulFillmentLog> FulfillmentLogs { get; set; } = new List<FulFillmentLog>();
 }

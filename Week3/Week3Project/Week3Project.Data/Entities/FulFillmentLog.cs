@@ -9,17 +9,14 @@ public class FulFillmentLog
     
     public int PurchaseOrderId { get; set; }
     
-    [ForeignKey(nameof(PurchaseOrderId))]
-    public PurchaseOrder PurchaseOrder { get; set; } = null!;
-    
     [Required]
     [StringLength(50)]
-    public string Type { get; set; } = string.Empty; // e.g., "Success", "ConflictRetry", "Backorder"
+    public string Type { get; set; } = default!; // e.g., "Success", "ConflictRetry", "Backorder"
     
     //This is that field where it says what happened to the order
     [Required]
     [StringLength(500)]
-    public string Message { get; set; } = string.Empty;
+    public string Message { get; set; } = default!;
     
     public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 }

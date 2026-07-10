@@ -15,5 +15,5 @@ public class Customer
     public string Email { get; set; } = string.Empty;
 
     // Navigation property
-    public List<PurchaseOrder> Orders { get; set; } = new List<PurchaseOrder>();
+    public ICollection<PurchaseOrder> Orders { get; set; }
 }
