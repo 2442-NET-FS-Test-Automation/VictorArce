@@ -18,11 +18,11 @@ public class Seeder : ISeeder
 
     public IReadOnlyList<int> Seed(int numOrders, bool expedited)
     {
-        var db = _dbContextFactory.CreateDbContext();
+        using var db = _dbContextFactory.CreateDbContext();
         
         var pid = db.Cards.ToDictionary(c => c.Sku, c => c.Id);
-
-        var ids = new List<int>(numOrders);
+        
+        List<int> ids = new();
 
         for (int i = 0; i < numOrders; i++)
         {
@@ -33,9 +33,9 @@ public class Seeder : ISeeder
                 OrderLines = { new OrderLine { CardId = pid[cards[i % cards.Length]], Quantity = 1 } }
             };
             db.Orders.Add(order);
-            db.SaveChanges();
             ids.Add(order.Id);
         }
+        db.SaveChanges();
         return ids;
     }
 }

@@ -2,5 +2,5 @@
 
 public interface IFulfillmentService
 {
-    
+    public Task<BurstResult> FulfillBurstAsync(List<int> orderIds, CancellationToken ct);
 }

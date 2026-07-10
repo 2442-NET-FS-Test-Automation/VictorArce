@@ -8,6 +8,7 @@ public class OrderLine
     
     public int PurchaseOrderId { get; set; }
     
+    [ForeignKey(nameof(PurchaseOrderId))]
     public PurchaseOrder PurchaseOrder { get; set; } = null!;
     
     public int CardId { get; set; }
