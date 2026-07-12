@@ -19,8 +19,6 @@ public class PurchaseOrder
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }
-
-    // Even with the single-line simplification, keeping an Order -> OrderLine breakdown
-    // protects the 3NF schema design for future expansions.
+    
     public ICollection<OrderLine> OrderLines { get; set; } = new List<OrderLine>();
 }
