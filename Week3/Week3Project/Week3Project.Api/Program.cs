@@ -7,6 +7,7 @@ using Week3Project.Api.Seeder;
 using Week3Project.Data.Entities;
 using Week3Project.Data.Enum;
 using Week3Project.Api.Exceptions;
+using Scalar.AspNetCore;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,12 +26,24 @@ var connectionString = builder.Configuration.GetConnectionString("DefaultConnect
 builder.Services.AddDbContextFactory<StoreDbContext>(options => 
     options.UseSqlServer(connectionString));
 
-//Injecting Seeder dependency
+// ==========================================
+// 1. DEPENDENCY INJECTION & SERVICES REGISTER
+// ==========================================
+
+// Register application services with Scoped lifetime (a new instance is created per HTTP request)
 builder.Services.AddScoped<ISeeder, Seeder>();
 builder.Services.AddScoped<IBurstPlanner, BurstPlanner>();
 builder.Services.AddScoped<IFulfillmentService, FulfillmentService>();
+
+// Register global exception handling components to intercept and format unhandled runtime errors
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddProblemDetails();
+builder.Services.AddProblemDetails(); // Generates RFC 7807 compliant error responses
+
+// ==========================================
+// 2. DATA STRUCTURES & STATIC SEED POOLS
+// ==========================================
+
+// Static reference list of Yu-Gi-Oh cards used to re-populate the database during seeding
 List<Card> cardsRefill = new List<Card>
 {
     new Card { Sku = "YGO-GAOV-EN032-UR", Name = "Neo Galaxy-Eyes Photon Dragon", Price = 10m},
@@ -40,6 +53,7 @@ List<Card> cardsRefill = new List<Card>
     new Card { Sku = "YGO-GAOV-ENSP2-UR", Name = "Hieratic Seal of the Dragon King", Price = 9m}
 };
 
+// Static initial stock quantities assigned to inventory slots
 List<CardInventory> CardInventories = new List<CardInventory>
 {
     new CardInventory { CardId = 5, QuantityOnHand = 5 },
@@ -49,36 +63,55 @@ List<CardInventory> CardInventories = new List<CardInventory>
     new CardInventory { CardId = 9, QuantityOnHand = 500 } 
 };
 
-//Serilog initialization
+// ==========================================
+// 3. LOGGING & API EXPLORER SETUP
+// ==========================================
+
+// Initialize Serilog to capture runtime output to both the Console and daily rolling log files
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
     .WriteTo.File("logs/fulfillment-log-.log", rollingInterval: RollingInterval.Day)
     .CreateLogger();
 
+// Configure OpenAPI (Swagger/Scalar) tools for API specification generation
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
+builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
-//The global exception handler
+// ==========================================
+// 4. MIDDLEWARE PIPELINE CONFIGURATION
+// ==========================================
+
+// Activates the GlobalExceptionHandler registered in the service collection
 app.UseExceptionHandler();
 
-//Here goes the swagger stuff
-app.UseSwagger();
-app.UseSwaggerUI();
+// Enable API documentation interactive UIs only when running in a local Development environment
+if (app.Environment.IsDevelopment())
+{
+    app.MapOpenApi();
+    app.MapScalarApiReference();
+}
 
-//Hay mi madre que el espiritu de la maquina le conceda a este codigo la capacidad de no fallar
-app.MapGet("/", () => "\n\n\"From the moment I understood the weakness of my flesh, it disgusted me. I craved the strength and certainty of steel. I aspired to the purity of the blessed machine. Your kind cling to your flesh as if it will not decay and fail you. One day the crude biomass you call a temple will wither and you will beg my kind to save you. But I am already saved. For the Machine is Immortal\"\n");
+// ==========================================
+// 5. API ROUTE ENDPOINTS (MINIMAL APIs)
+// ==========================================
 
-//Map stuff
-//List all cards in the DB
+// Root endpoint serving as an application health check / easter egg
+app.MapGet("/", () => "\n\n\"From the moment I understood the weakness of my flesh, " +
+                      "it disgusted me. I craved the strength and certainty of steel. " +
+                      "I aspired to the purity of the blessed machine. " +
+                      "Your kind cling to your flesh as if it will not decay and fail you. One day the crude biomass you call a temple will wither and you will beg my kind to save you. " +
+                      "But I am already saved. " +
+                      "For the Machine is Immortal\"\n");
+
+// GET: Fetches a complete list of all cards tracked in the database
 app.MapGet("/Cards", async (StoreDbContext db) =>
 {
     return await db.Cards.ToListAsync();
 });
 
-//List all cards in the DB with their quantity in stock
+// GET: Projection query that pulls card details alongside their total inventory counts
 app.MapGet("/Cards/withQuantity", async (StoreDbContext db) =>
 {
     return await db.Cards
@@ -87,11 +120,11 @@ app.MapGet("/Cards/withQuantity", async (StoreDbContext db) =>
             c.Sku,
             c.Name,
             c.Inventory!.QuantityOnHand
-            // Assuming a separate Inventory table matches on CardId
         })
         .ToListAsync();
 });
 
+// GET: Filters and returns only cards that currently have 1 or more units available in stock
 app.MapGet("/Cards/withStock", async (StoreDbContext db) =>
 {
     return await db.Cards
@@ -100,12 +133,12 @@ app.MapGet("/Cards/withStock", async (StoreDbContext db) =>
             c.Sku,
             c.Name,
             c.Inventory!.QuantityOnHand
-            // Assuming a separate Inventory table matches on CardId
         }).Where(inventory => inventory.QuantityOnHand > 0)
         .ToListAsync();
 });
 
-app.MapGet("/Cards/whitoutStock", async (StoreDbContext db) =>
+// GET: Filters and returns cards that are completely out of stock (Quantity == 0)
+app.MapGet("/Cards/withoutStock", async (StoreDbContext db) =>
 {
     return await db.Cards
         .Select(c => new
@@ -117,29 +150,28 @@ app.MapGet("/Cards/whitoutStock", async (StoreDbContext db) =>
         .ToListAsync();
 });
 
+// GET: Fetches a complete list of all registered store customers
 app.MapGet("/Customers", async (StoreDbContext db) =>
 {
     return await db.Customer.ToListAsync();
 });
 
+// GET: Analytics report showing the top 10 products sorted by total volume of units ordered
 app.MapGet("/reports/top-products", async (StoreDbContext db, CancellationToken ctk) =>
 {
     Log.Information("Generating Top Products report...");
 
-    // Grouping by CardId and Name, calculating the sum of quantities, and sorting descending
     var topProducts = await db.OrderLines
-        // Optional: Uncomment the next line if you ONLY want to count successfully fulfilled orders
-        // .Where(ol => ol.Order.Status == OrderStatus.Fulfilled)
         .GroupBy(ol => new { ol.CardId, ol.Card.Name })
         .Select(g => new
         {
             CardId = g.Key.CardId,
             CardName = g.Key.Name,
             TotalUnitsAllocated = g.Sum(ol => ol.Quantity),
-            TimesOrdered = g.Count() // How many separate orders included this item
+            TimesOrdered = g.Count() 
         })
         .OrderByDescending(x => x.TotalUnitsAllocated)
-        .Take(10) // Standard practice to limit reports to Top 10/50 to save bandwidth
+        .Take(10) // Restrict to top 10 items to preserve network bandwidth
         .ToListAsync(ctk);
 
     if (!topProducts.Any())
@@ -156,13 +188,14 @@ app.MapGet("/reports/top-products", async (StoreDbContext db, CancellationToken 
     });
 });
 
+// POST: Idempotent database seeder that safely populates missing cards and target stock counts
 app.MapPost("/Seed", async (StoreDbContext db) =>
 {
-    Log.Information("Starting safe database seed (preserving existing records)...");
+    Log.Information("Starting database seed ...");
 
     try
     {
-        // 1. Seed Cards (checking by SKU)
+        // PHASE 1: Verify missing records by SKU to prevent duplicate primary key insertion errors
         var existingCardSkus = await db.Cards.Select(c => c.Sku).ToListAsync();
         int addedCards = 0;
 
@@ -176,14 +209,13 @@ app.MapPost("/Seed", async (StoreDbContext db) =>
             }
         }
         
-        // Save cards so the DB assigns them their REAL auto-incremented Ids!
+        // Persist records immediately so relational database engines assign real identity keys
         if (addedCards > 0) 
         {
             await db.SaveChangesAsync();
         }
 
-        // 2. Map your specific quantities to the Card SKUs 
-        // (Assuming they match your cardsRefill list order 1-to-1)
+        // PHASE 2: Map SKU strings to strict relational foreign keys (Inventory requirements)
         var inventoryDemands = new Dictionary<string, int>
         {
             { "YGO-GAOV-EN032-UR", 5 },
@@ -194,20 +226,19 @@ app.MapPost("/Seed", async (StoreDbContext db) =>
         };
 
         var existingInventoryCardIds = await db.Inventories.Select(i => i.CardId).ToListAsync(); 
-        var allCards = await db.Cards.ToListAsync(); // Get the cards with their real DB Ids!
+        var allCards = await db.Cards.ToListAsync(); 
         int addedInventories = 0;
 
         Log.Information("Seeding missing inventory dynamically...");
         foreach (var card in allCards)
         {
-            // If this card is one of the ones we want to track AND it has no inventory row yet
             if (inventoryDemands.TryGetValue(card.Sku, out int targetQty))
             {
                 if (!existingInventoryCardIds.Contains(card.Id))
                 {
                     db.Inventories.Add(new CardInventory 
                     { 
-                        CardId = card.Id,           // Uses the REAL database ID!
+                        CardId = card.Id, // Link using the dynamic ID provided by DB engine
                         QuantityOnHand = targetQty 
                     });
                     addedInventories++;
@@ -234,24 +265,22 @@ app.MapPost("/Seed", async (StoreDbContext db) =>
     }
 });
 
-//Easy as it reads, set all the stock to 0
+// POST: Flushes all inventory counts back to zero
 app.MapPost("/Clear", async (IDbContextFactory<StoreDbContext> dbContextFactory) =>
 {
     Log.Information("Purging all card stock to zero...");
 
     try
     {
+        // Creates an isolated database context thread manually to manage state safe from concurrency conflicts
         using var db = await dbContextFactory.CreateDbContextAsync();
         
-        // Load the inventories into memory
         var inventories = await db.Inventories.ToListAsync();
-        
         foreach (var inventory in inventories)
         {
             inventory.QuantityOnHand = 0;
         }
 
-        // CRITICAL: Push changes to SQL Server!
         await db.SaveChangesAsync();
 
         Log.Information("All vault quantities successfully zeroed out.");
@@ -264,12 +293,13 @@ app.MapPost("/Clear", async (IDbContextFactory<StoreDbContext> dbContextFactory)
     }
 });
 
+// POST: High-performance direct SQL execution to restock all items back to 1000 items instantly
 app.MapPost("/Restock", async (StoreDbContext db) =>
 {
     Log.Information("Initiating global restock: setting all inventory rows to 1000 units...");
     try
     {
-        // Executes "UPDATE Inventories SET QuantityOnHand = 10" directly in the database
+        // Executes an in-database UPDATE statement bypassing standard EF entity tracking overhead
         int affectedRows = await db.Inventories.ExecuteUpdateAsync(setters => 
             setters.SetProperty(i => i.QuantityOnHand, 1000));
 
@@ -283,58 +313,56 @@ app.MapPost("/Restock", async (StoreDbContext db) =>
     }
 });
 
+// POST: Generates massive volume orders and routes them off to background processing threads asynchronously
 app.MapPost("/Burst", async (int i, bool expedited, IServiceScopeFactory scopeFactory, ISeeder seeder,
-    IHostApplicationLifetime appLifetime) =>
+        IHostApplicationLifetime appLifetime) =>
 {
-    //Logs for the records
     Log.Information("Starting burst. Seeding {i} orders to DataBase.", i);
     
-    //Execute that aberration we call seeder
+    // Step 1: Populate incoming workload orders synchronously during the request context
     IReadOnlyList<int> ids = seeder.Seed(i, expedited);
     
-    //Ask for the cancellation token
+    // Tie process lifecycle tokens to background threads to handle safe shutdowns gracefully
     var cts = appLifetime.ApplicationStopping;
     
-    Log.Information("Seeded complete. {Count} orders to the planifier.", ids.Count);
+    Log.Information("Seeding complete. {Count} orders sent to the background planner.", ids.Count);
     
+    // Step 2: Offload heavy processing execution loop onto separate background workers
     _ = Task.Run(async () =>
     {
         try
         {
-            Log.Information("Starting burst");
-            // Creamos un entorno seguro aislado para este hilo de fondo
+            // Create a completely separate DI Scope for the thread. 
+            // This prevents memory corruption and resource disposal failures with the DbContext.
             using var scope = scopeFactory.CreateScope();
-            var planner = scope.ServiceProvider.GetRequiredService<IFulfillmentService>();
+            var fulfillmentService = scope.ServiceProvider.GetRequiredService<IFulfillmentService>();
             
-            // Pasamos la lista de IDs y el token de apagado al motor
-            await planner.ProcessBurstAsync(ids, cts);
-            Log.Information("Burst made it");
+            await fulfillmentService.ProcessBurstAsync(ids, cts);
+            Log.Information("Background burst execution completed successfully.");
         }
         catch (OperationCanceledException)
         {
-            Log.Warning("El procesamiento de la ráfaga fue interrumpido limpiamente debido al apagado del servidor.");
+            Log.Warning("Burst processing was cleanly interrupted due to server shutdown.");
         }
         catch (Exception e)
         {
-            Log.Error(e, "Ocurrió un error crítico inesperado durante el procesamiento de la ráfaga.");
+            Log.Error(e, "A critical unexpected error occurred during background burst processing.");
         }
     }, cts);
 
-    Log.Information("Burst completed");
+    // Return 202 Accepted status instantly so api client doesn't time out waiting for fulfillment processing
+    return Results.Accepted(value: new { Message = "Burst processing started in background.", OrderCount = ids.Count });
 });
 
+// POST: Diagnostic utility comparing Sequential processing throughput vs Parallel processing pipelines
 app.MapPost("/Benchmark", async (int n, ISeeder seeder, IFulfillmentService fulfillmentService, 
     StoreDbContext db, HttpContext httpContext) =>
 {
-    // Use the HTTP request's built-in cancellation token.
-    // If the client cancels the request or closes the tab, processing aborts instantly!
+    // Capture user cancellation tokens (If client closes browser tab/aborts request, performance measurements stop)
     var ctk = httpContext.RequestAborted;
-
-    Log.Information("=== STARTING TARGET M4 BENCHMARK ===");
+    
     Log.Information("Generating a mixed batch of {Count} benchmark test orders...", n);
 
-    // 1. Generate a test pool of 'n' orders using your seeder
-    // We generate a mixed batch to ensure priority lanes are engaged during the parallel run
     IReadOnlyList<int> sampleOrderIds = seeder.Seed(n, expedited: true);
 
     if (!sampleOrderIds.Any())
@@ -345,46 +373,38 @@ app.MapPost("/Benchmark", async (int n, ISeeder seeder, IFulfillmentService fulf
 
     // --- PHASE 1: THE SEQUENTIAL RUN ---
     Log.Information("Phase 1: Initializing baseline stock for Sequential Run...");
-    // Reset all card inventory rows to a stable baseline (e.g., 500 units) so they don't immediately backorder
     await db.Inventories.ExecuteUpdateAsync(s => s.SetProperty(i => i.QuantityOnHand, 500), ctk);
-    
-    // Ensure the generated orders are in a clean Pending state
     await db.Orders.Where(o => sampleOrderIds.Contains(o.Id))
         .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OrderStatus.Pending), ctk);
 
     Log.Information("Executing Sequential processing pipeline...");
     var sequentialTimer = Stopwatch.StartNew();
     
-    // Run the fulfillment service sequentially (useParallel: false)
+    // Run order processing using a single processing core channel loop
     await fulfillmentService.ProcessBurstAsync(sampleOrderIds, ctk, useParallel: false);
     
     sequentialTimer.Stop();
     long sequentialMs = sequentialTimer.ElapsedMilliseconds;
     Log.Information("Sequential Run completed in {Elapsed}ms.", sequentialMs);
 
-
     // --- PHASE 2: THE PARALLEL RUN ---
     Log.Information("Phase 2: Resetting stock variables for Parallel Run...");
-    // CRITICAL REQUIREMENT: Reset stock to the exact same starting values to keep the test fair
+    // CRITICAL: Reset database back to baseline so that thread contention constraints match identical baselines
     await db.Inventories.ExecuteUpdateAsync(s => s.SetProperty(i => i.QuantityOnHand, 500), ctk);
-    
-    // Reset the exact same orders back to Pending so the parallel engine can process them from scratch
     await db.Orders.Where(o => sampleOrderIds.Contains(o.Id))
         .ExecuteUpdateAsync(s => s.SetProperty(o => o.Status, OrderStatus.Pending), ctk);
 
     Log.Information("Executing Parallel processing pipeline...");
     var parallelTimer = Stopwatch.StartNew();
     
-    // Run the fulfillment service concurrently (useParallel: true)
+    // Run order processing scaling workloads across multi-threaded asynchronous workers concurrently
     await fulfillmentService.ProcessBurstAsync(sampleOrderIds, ctk, useParallel: true);
     
     parallelTimer.Stop();
     long parallelMs = parallelTimer.ElapsedMilliseconds;
     Log.Information("Parallel Run completed in {Elapsed}ms.", parallelMs);
 
-
     // --- PHASE 3: ANALYSIS & REPORTING ---
-    // Calculate the efficiency multiplier (Speedup Factor)
     double speedupFactor = (double)sequentialMs / (parallelMs == 0 ? 1 : parallelMs);
 
     Log.Information("=== BENCHMARK COMPLETE ===");
@@ -404,9 +424,25 @@ app.MapPost("/Benchmark", async (int n, ISeeder seeder, IFulfillmentService fulf
     });
 });
 
-//app.Run() always has to be at the end of the file either on a minimal API or a Controller Api
-app.Run();
-Log.Information("The machine spirit let us compile this and test it");
-Log.CloseAndFlush();
+// ==========================================
+// 6. LIFE CYCLE & ROOT PROCESS EXECUTION
+// ==========================================
+try
+{
+    Log.Information("Starting the machine spirit application context...");
+    
+    // Blocking initialization process loop that starts web socket pipelines listening for traffic
+    app.Run();
+}
+catch (Exception ex)
+{
+    Log.Fatal(ex, "The machine spirit has suffered a critical host configuration crash.");
+}
+finally
+{
+    // Ensuring background logging streams dump write buffers safely down to disk paths on close signals
+    Log.Information("The machine spirit has been laid to rest safely.");
+    Log.CloseAndFlush();
+}
 
 //Praise Ommnisiah
