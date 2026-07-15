@@ -98,11 +98,13 @@ if (app.Environment.IsDevelopment())
 // ==========================================
 
 // Root endpoint serving as an application health check / easter egg
-app.MapGet("/", () => "\n\n\"From the moment I understood the weakness of my flesh, " +
-                      "it disgusted me. I craved the strength and certainty of steel. " +
-                      "I aspired to the purity of the blessed machine. " +
-                      "Your kind cling to your flesh as if it will not decay and fail you. One day the crude biomass you call a temple will wither and you will beg my kind to save you. " +
-                      "But I am already saved. " +
+app.MapGet("/", () => Results.Redirect("Scalar/#tag/week3projectapi"));
+
+app.MapGet("/Text", () => "\n\n\"From the moment I understood the weakness of my flesh,it disgusted me. \"\n" +
+                      "I craved the strength and certainty of steel.\"\n" +
+                      "I aspired to the purity of the blessed machine.\"\n" +
+                      "Your kind cling to your flesh as if it will not decay and fail you. One day the crude biomass you call a temple will wither and you will beg my kind to save you.\"\n" +
+                      "But I am already saved.\"\n" +
                       "For the Machine is Immortal\"\n");
 
 // GET: Fetches a complete list of all cards tracked in the database
