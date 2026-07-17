@@ -7,33 +7,24 @@ using Week3Project.Data.Enum;
 
 namespace Week3Project.Api.Fulfillment;
 
-//When all this was wrote i was so high on caffeine that I can barely remember how i did it
-/// <summary>
-/// Core inventory allocation and fulfillment execution engine.
-/// Utilizes a factory pattern to orchestrate isolated database sessions, allowing safe, 
-/// thread-safe parallel processing across multi-threaded operations without resource leakage.
-/// </summary>
+//When all this was wrote i was so high on caffeine that I can barely remember how i did it so i tried to comment everything
 public class FulfillmentService : IFulfillmentService
 {
     // Factory utilized to dynamically spin up dedicated DbContext snapshots per execution thread path
     private readonly IDbContextFactory<StoreDbContext> _dbContextFactory;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="FulfillmentService"/> class.
-    /// </summary>
-    /// <param name="dbContextFactory">The database context factory injected via dependency container.</param>
+    private static IEnumerable<int> OrderByPriority(IEnumerable<PurchaseOrder> orders)
+    {
+        return orders
+            .OrderByDescending(o => o.Priority == OrderPriority.SpeedPlus)
+            .Select(o => o.Id);
+    }
+    
     public FulfillmentService(IDbContextFactory<StoreDbContext> dbContextFactory)
     {
         _dbContextFactory = dbContextFactory;
     }
-
-    /// <summary>
-    /// Processes a massive batch (burst) of incoming order IDs, orchestrating execution path
-    /// routing across either a strict serialized timeline or an split multi-lane parallel matrix.
-    /// </summary>
-    /// <param name="ids">Collection of primary keys matching orders designated for evaluation.</param>
-    /// <param name="ctk">Asynchronous termination token tracking upstream application state flags.</param>
-    /// <param name="useParallel">Flag determining if multi-threaded execution tracks are utilized.</param>
+    
     public async Task ProcessBurstAsync(IReadOnlyList<int> ids, CancellationToken ctk, bool useParallel = false)
     {
         Log.Information("Planificador iniciado para {Count} órdenes. Modo Paralelo: {Mode}", ids.Count, useParallel);
@@ -50,9 +41,6 @@ public class FulfillmentService : IFulfillmentService
 
         if (useParallel)
         {
-            // ====================================================================
-            // --- TWO-LANE PARALLEL STRATEGY ---
-            // ====================================================================
             // Group operations into two distinct scheduling arrays to ensure high-priority
             // Express orders bypass standard shipping backlogs entirely while maximizing execution threads.
 
@@ -62,7 +50,7 @@ public class FulfillmentService : IFulfillmentService
                 .ToList();
 
             var normalIds = orders
-                .Where(o => o.Priority != OrderPriority.SpeedPlus)
+                .Where(o => o.Priority != OrderPriority.Speed)
                 .Select(o => o.Id)
                 .ToList();
 
@@ -91,9 +79,6 @@ public class FulfillmentService : IFulfillmentService
         }
         else
         {
-            // ====================================================================
-            // --- SEQUENTIAL STRATEGY ---
-            // ====================================================================
             // Clean single-threaded execution baseline path used during telemetry validation runs.
             var sortedOrderIds = OrderByPriority(orders).ToList();
 
@@ -112,11 +97,7 @@ public class FulfillmentService : IFulfillmentService
 
         Log.Information("Procesamiento completado.");
     }
-
-    /// <summary>
-    /// Processes stock deductions and records status audits for a single order.
-    /// Implements an optimistic concurrency retry loop to handle row-level conflicts under parallel load.
-    /// </summary>
+    
     private async Task FulfillSingleOrderWithRetryAsync(int orderId, CancellationToken ctk)
     {
         const int maxRetries = 3;
@@ -237,20 +218,10 @@ public class FulfillmentService : IFulfillmentService
         }
     }
 
-    /// <summary>
-    /// Helper calculation sorting order arrays by business priority characteristics sequentially.
-    /// </summary>
-    private static IEnumerable<int> OrderByPriority(IEnumerable<PurchaseOrder> orders)
-    {
-        return orders
-            .OrderByDescending(o => o.Priority == OrderPriority.SpeedPlus)
-            .Select(o => o.Id);
-    }
-
     // Dos colas concurrentes (SeedPlus primero)
     //Este se me presento como una epifania, aun no esta testeado pero aqui esta
     //Miralo que bonito
-    public async Task MicroPlasticBurstAsync(IReadOnlyList<int> ids, CancellationToken cts)
+    public async Task MicroPlasticBurstAsync(IReadOnlyList<int> ids, CancellationToken cts, bool useParallel)
     {
         var speedPlusQueue = new ConcurrentQueue<int>();
         var speedQueue = new ConcurrentQueue<int>();
@@ -262,39 +233,53 @@ public class FulfillmentService : IFulfillmentService
                 .Select(o => new { o.Id, o.Priority })
                 .ToListAsync(cts);
 
-            foreach (var order in orders)
-            {
-                if (order.Priority == OrderPriority.SpeedPlus)
-                    speedPlusQueue.Enqueue(order.Id);
-                else
-                    speedQueue.Enqueue(order.Id);
-            }
-
-        async Task Worker()
+        foreach (var order in orders)
         {
-            while (!cts.IsCancellationRequested)
+            if (order.Priority == OrderPriority.SpeedPlus)
+                speedPlusQueue.Enqueue(order.Id);
+            else
+                speedQueue.Enqueue(order.Id);
+        }
+        
+        if (useParallel)
+        {
+            async Task Worker()
             {
-                if (speedPlusQueue.TryDequeue(out var orderId))
+                while (!cts.IsCancellationRequested )
                 {
-                    await FulfillSingleOrderWithRetryAsync(orderId, cts);
+                    if (speedPlusQueue.TryDequeue(out var orderId))
+                    {
+                        await FulfillSingleOrderWithRetryAsync(orderId, cts);
+                    }
+                    else if (speedQueue.TryDequeue(out orderId))
+                    {
+                        await FulfillSingleOrderWithRetryAsync(orderId, cts);
+                    }
                 }
-                else if (speedQueue.TryDequeue(out orderId))
-                {
-                    await FulfillSingleOrderWithRetryAsync(orderId, cts);
-                }
-                else
-                {
-                    break;
-                }
+            }
+            int workerCount = Environment.ProcessorCount;
+
+            var workers = Enumerable.Range(0, workerCount)
+                .Select(_ => Task.Run(Worker, cts));
+
+            await Task.WhenAll(workers);
+        }
+        else
+        {
+            if (speedPlusQueue.TryDequeue(out var orderId))
+            {
+                await FulfillSingleOrderWithRetryAsync(orderId, cts);
+            }
+            else
+            {
+                speedQueue.Enqueue(orderId);
+                await FulfillSingleOrderWithRetryAsync(orderId, cts);
             }
         }
+        
+        
 
-        int workerCount = Environment.ProcessorCount;
 
-        var workers = Enumerable.Range(0, workerCount)
-            .Select(_ => Task.Run(Worker, cts));
-
-        await Task.WhenAll(workers);
 
         Log.Information("Ráfaga procesada con doble cola concurrente.");
     }

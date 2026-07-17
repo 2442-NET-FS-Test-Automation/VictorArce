@@ -6,34 +6,18 @@ using Week3Project.Data.Enum;
 
 namespace Week3Project.Api.Seeder;
 
-/// <summary>
-/// Data generation utility responsible for populating the database with mock purchase orders 
-/// and updating card stock states for diagnostic benchmarking and testing.
-/// </summary>
 public class Seeder : ISeeder
 {
     // Factory utilized to isolate database context instances during heavy data-generation operations
     private readonly IDbContextFactory<StoreDbContext> _dbContextFactory;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Seeder"/> class.
-    /// </summary>
-    /// <param name="factory">The database context factory injected via dependency container.</param>
+    
     public Seeder(IDbContextFactory<StoreDbContext> factory)
     {
         _dbContextFactory = factory;
     }
-
-    /// <summary>
-    /// Generates and persists a specified number of randomized mock purchase orders.
-    /// Extracts generated Identity IDs directly from EF Core's tracking graph after batch insertion.
-    /// </summary>
-    /// <param name="numOrders">The total count of orders to construct and save.</param>
-    /// <param name="priority">True to assign priority status (SpeedPlus), false for standard processing.</param>
-    /// <returns>A read-only collection of the newly generated primary key IDs assigned by the database engine.</returns>
-    public IReadOnlyList<int> Seed(int numOrders, bool priority)
+    
+    public IReadOnlyList<int> Seed(int numOrders)
     {
-        // Instantiating an isolated context ensures entity state tracking remains lightweight
         using var db = _dbContextFactory.CreateDbContext();
     
         // Construct an in-memory dictionary pairing card SKUs to their database auto-incremented primary IDs.
@@ -58,9 +42,9 @@ public class Seeder : ISeeder
             // Construct the root PurchaseOrder entity complete with a matching transactional OrderLine graph
             var order = new PurchaseOrder
             {
-                // Assign a randomized Customer ID (Values 1, 2, or 3, assuming exactly 3 customers were pre-seeded)
+                // Assign a randomized Customer ID (Values 1, 2, or 3)
                 CustomerId = Random.Shared.Next(1, 4), 
-                Priority = priority ? OrderPriority.SpeedPlus : OrderPriority.Speed,
+                Priority = (Random.Shared.Next(0, 2) == 0) ? OrderPriority.SpeedPlus : OrderPriority.Speed,
                 Status = OrderStatus.Pending,
                 CreatedAt = DateTime.UtcNow,
             
@@ -91,40 +75,5 @@ public class Seeder : ISeeder
         }
     
         return ids;
-    }
-    
-    /// <summary>
-    /// Discovers existing inventory entities and overwrites their current balances 
-    /// with randomized supply volumes between 1 and 1000 items.
-    /// </summary>
-    public void Restock()
-    {
-        using var db = _dbContextFactory.CreateDbContext();
-        
-        // Pull entire card arrays down to modify tracking snapshots sequentially
-        db.Cards.ToList().ForEach(c =>
-        {
-            if (c.Inventory != null) 
-                c.Inventory.QuantityOnHand = Random.Shared.Next(1, 1000);
-        });
-
-        db.SaveChanges();
-    }
-    
-    /// <summary>
-    /// Updates all recorded inventory data structures to match a specific hardcoded balance target.
-    /// </summary>
-    /// <param name="i">The designated volume value applied globally to all matching entries.</param>
-    public void StockToTarget(int i)
-    {
-        using var db = _dbContextFactory.CreateDbContext();
-        
-        db.Cards.ToList().ForEach(c => 
-        {
-            if (c.Inventory != null)
-                c.Inventory.QuantityOnHand = i;
-        });
-
-        db.SaveChanges();
     }
 }

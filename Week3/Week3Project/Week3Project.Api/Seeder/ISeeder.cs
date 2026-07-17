@@ -5,9 +5,5 @@ namespace Week3Project.Api.Seeder;
 
 public interface ISeeder
 {
-    IReadOnlyList<int> Seed(int i, bool expedited);
-
-    void Restock();
-
-    void StockToTarget(int i);
+    IReadOnlyList<int> Seed(int i);
 }
